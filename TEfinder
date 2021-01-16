@@ -2,10 +2,10 @@
 ##
 ##
 ## Authors: Vista Sohrab & Dilay Hazal Ayhan
-## Date: September 16, 2020
-## Description: TEfinder uses discordant reads to detect novel transposable element insertion events in paired-end sample sequencing data. 
-##              Software dependencies include bedtools 2.28.0, samtools 1.3 or later, picard 2.0.1 or later
-##              Required inputs include sample alignment file (.BAM), reference genome FASTA index (.FAI), reference TE annotation (.GFF),and TEs of interest (.TXT)
+## Date: January 15, 2021
+## Description: TEfinder uses discordant reads to detect novel transposable element insertion events in short read paired-end sample sequencing data. 
+##              Software dependencies include bedtools 2.28.0 or later, samtools 1.3 or later, picard 2.0.1 or later
+##              Required inputs include sample alignment file (.bam|.sam), reference genome FASTA (.fa), reference TE annotation in GFF/GTF or GFF3 (.gff|.gtf), and TEs of interest (.txt)
 ##
 ## University of Massachusetts Amherst
 ##
@@ -19,22 +19,25 @@ margs=4
 
 # Functions
 function example {
-     echo -e "example: TEfinder -bam sample.bam -fai reference.fai -gff TEs.gff -te List_of_TEs.txt"
+     echo -e "example: TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt"
 }
 
 function help {
      echo -e "REQUIRED:"
-     echo -e "  -bam,        --alignmentFile       STR  sample reads aligned to reference genome (BAM file)"
-     echo -e "  -fai,        --FastaIndexFile      STR  reference genome FASTA index (FAI file)"
-     echo -e "  -gff,        --TransposonsInGenome STR  reference genome TE annotation (GFF file)"
+     echo -e "  -alignment,  --alignmentFile       STR  sample reads aligned to reference genome (BAM/SAM file)"
+     echo -e "  -fa,         --FastaFile           STR  reference genome FASTA index (FA file)"
+     echo -e "  -gtf,        --TransposonsInGenome STR  reference genome TE annotation (GFF2/GTF file)"
      echo -e "  -te,         --TransposonsToSearch STR  TE names\n (single column text file)"
      echo -e "OPTIONAL:"
      echo -e "  -fis,        --FragmentInsertSize  INT  short-read sequencing fragment insert size [400]"
      echo -e "  -picard,     --pathToPicardjar     STR  path to picardtools .jar file [picard.jar]"
      echo -e "  -md,         --MaxDistanceForMerge INT  maximum distance between reads for bedtools merge [150]"
-     echo -e "  -k,          --MaxTSDLength	       INT  maximum TE target site duplication (TSD) length [20]"
-     echo -e "  -maxHeapMem, --MaxHeapMemory       INT  java maximum heap memory allocation for picard [null]" 
+     echo -e "  -k,          --MaxTSDLength	   INT  maximum TE target site duplication (TSD) length [20]"
+     echo -e "  -maxHeapMem, --MaxHeapMemory       INT  java maximum heap memory allocation for picard in Mb [2000]" 
      echo -e "  -workingdir, --WorkingDirectory    STR  working directory name [TEfinder_<Date>]"
+     echo -e "  -out,        --OutputFormat        STR  output format as GTF [BED]"
+     echo -e "  -outname,    --OutputName          STR  output name prefix added to file names [null]"
+     echo -e "  -threads,    --Threads             INT  number of threads for samtools multi-threading [1]"
      echo -e "  -h,          --help                     prints help\n"
      example
 }
@@ -55,19 +58,19 @@ function pipeline() {
      currdir=${workingdir}/${line}
      echo -e $(date) " Transposon analysis for "${line}" has started\n"
      
-     grep -i '"Motif:'${line}'"' $gff > ${currdir}/${line}_TE.gff
+     grep -P '[^(\w|\d|\-|\_|\#|\.)]'${line}'[^(\w|\d|\-|\_|\#|\.)]' $gtf > ${currdir}/${line}_TE.gff
      echo -e $(date) " Individual TE GFF has been created for "${line}"\n" ####
      
-     bedtools intersect -abam ${workingdir}/Alignments.bam -b ${currdir}/${line}_TE.gff -wa > ${currdir}/${line}_MappedReadsToTE.bam
+     bedtools intersect -abam ${workingdir}/${outname}Alignments.bam -b ${currdir}/${line}_TE.gff -wa > ${currdir}/${line}_MappedReadsToTE.bam
      echo -e $(date) " Mapped reads to TE via bedtools intersect has been completed for "${line}"\n" ####
-     samtools view ${currdir}/${line}_MappedReadsToTE.bam | \
+     samtools view -@ $threads ${currdir}/${line}_MappedReadsToTE.bam | \
           awk -v Ins=`expr $fis \* 10` '{if (($7 != "=") || ($9 > Ins) || ($9 < -Ins)) print $1}' > ${currdir}/${line}_ReadID.txt
      echo -e $(date) " Identifying discordant read IDs has been completed for "${line}"\n" ####
      
 	 # if discordant readID file exists, then continue with remainder of TE analysis
 	 if  [[ -s  ${currdir}/${line}_ReadID.txt ]]
 	 then
-          java $maxHeapMem -jar $picard FilterSamReads I=${workingdir}/Alignments.bam O=${currdir}/${line}_DiscordantPairs.bam \
+          java $maxHeapMem -jar $picard FilterSamReads I=${workingdir}/${outname}Alignments.bam O=${currdir}/${line}_DiscordantPairs.bam \
                READ_LIST_FILE=${currdir}/${line}_ReadID.txt FILTER=includeReadList WRITE_READS_FILES=false
           echo -e $(date) " Filtering original alignment based on discordant reads IDs is complete for "${line}"\n"  ####
           
@@ -83,7 +86,7 @@ function pipeline() {
           ## find the closest minus strand to the plus strand in the cluster
           ## filter by the distance between the plus and minus clusters - only retain pairs if reads are 0-100 bases away
           ## if plus strand start is less than minus strand start and plus strand end is less than minus strand end then in proper orientation 
-          bedtools closest -d -g $fai -t first -a ${currdir}/${line}_plusCluster.bed -b ${currdir}/${line}_minusCluster.bed | \
+          bedtools closest -d -g ${workingdir}/reference.fa.fai -t first -a ${currdir}/${line}_plusCluster.bed -b ${currdir}/${line}_minusCluster.bed | \
                awk -v TSD=$k '{if ($9 <= TSD && $9 >= 0) print $0}' | \
                awk '{if ($2 < $6 && $3 < $7) print $0}' > ${currdir}/${line}_plusminus.bed
           echo -e $(date) " Filtration of clusters in proper orientation using bedtools closest has been completed for "${line}"\n" ####
@@ -101,7 +104,7 @@ function pipeline() {
           cat ${currdir}/${line}_plusminus_1.bed ${currdir}/${line}_plusminus_2.bed | \
                awk -v TEname=$line '{$0=TEname"\t"$0}1' | sort -k 1 | sort -k 2 > \
                ${currdir}/${line}_insertionRegion.txt
-          echo -e $(date) " TE insertions of "${line}" not present in repeat regions of reference genome have been reported.\n" ####
+          
           
           cat ${currdir}/${line}_insertionRegion.txt >> ${workingdir}/insertions.txt
           echo -e $(date) " TE insertions for "${line}" have been reported.\n" ####
@@ -111,37 +114,40 @@ function pipeline() {
           echo -e $(date) " Transposon named "${line}" is processed.\n"
 	 else
 	      echo -e $(date) " Transposon named "${line}" is processed. No discordant reads found.\n"
-		  rm -r ${currdir}
+	      rm -r ${currdir}
 	 fi
 }
 
 # functions end
 
 # get arguments
-fai=
-bam=
-gff=
+fa=
+alignment=
+gtf=
 te=
-maxHeapMem=
+out=
+outname=""
 fis=400
 picard="picard.jar"
+maxHeapMem=-Xmx2000m
 md=150
 k=20
 d=$(date +%Y%m%d%H%M%S)
 workingdir=TEfinder_${d}
+threads=1
  
 while [ "$1" != "" ];
 do
      case $1 in
-     -fai | --FastaIndexFile )
+     -fa | --FastaFile )
           shift
-          fai=$1 ;;
-     -bam | --alignmentFile )
+          fa=$1 ;;
+     -alignment | --alignmentFile )
 	      shift
-          bam=$1 ;;
-     -gff | --TransposonsInGenome )
+          alignment=$1 ;;
+     -gtf | --TransposonsInGenome )
 	      shift
-          gff=$1 ;;
+          gtf=$1 ;;
      -te | --TransposonsToSearch )
 	      shift
           te=$1  ;;
@@ -163,6 +169,15 @@ do
      -workingdir | --WorkingDirectory )
 	      shift
           workingdir=$1 ;;
+     -out | --OutputFormat )
+	      shift
+	   out=$1  ;;
+     -outname | --OutputName )
+              shift
+           outname=$1 ;;
+     -threads | --Threads )
+              shift
+           threads=$1 ;;
      -h   | --help )
 	      help
           exit;;
@@ -173,25 +188,29 @@ do
      esac
      shift
 done
-margs_check $fai $bam $gff $te
+margs_check $fa $alignment $gtf $te
 
 # main
 
 mkdir ${workingdir}
 
 # remove empty lines from user provided TE list if present
-sed '/^$/d' ${te} > ${workingdir}"/userTE_noEmptyLines.txt"
+sed '/^$/d' $te > ${workingdir}"/userTE_noEmptyLines.txt"
 
-# create output files
-touch ${workingdir}/TEinsertions.bed
-printf "%s\t"  "track name=TEfinder" "type=bedDetail" "description=FR:forward read, RR:reverse read, IS:insertion region start, IE:insertion region end" > ${workingdir}/TEinsertions.bed
-printf "%s\n" >> ${workingdir}/TEinsertions.bed
+# create output file
+printf "%s\t"  "track name=TEfinder" "type=bedDetail" "description=FR:forward read, RR:reverse read, InsRegion:insertion region start and end positions, FILTER:comma separated filters" > ${workingdir}/${outname}TEinsertions.bed
+printf "\n" >> ${workingdir}/${outname}TEinsertions.bed
 
-touch ${workingdir}/TEinsertions_inRepeatRegions.bed
-printf "%s\t"  "track name=TEfinder" "type=bedDetail" "description=FR:forward read, RR:reverse read, IS:insertion region start, IE:insertion region end" > ${workingdir}/TEinsertions_inRepeatRegions.bed
-printf "%s\n" >> ${workingdir}/TEinsertions_inRepeatRegions.bed
+# create fasta index (fai) file
+cp $fa ${workingdir}/reference.fa
+samtools faidx ${workingdir}/reference.fa
 
-samtools view -F 2304 -o ${workingdir}/Alignments.bam ${bam} 
+# sort alignment input
+samtools sort -@ ${threads} -o ${workingdir}/alignmentInput.sorted.bam ${alignment}
+echo -e $(date) " Alignment file sorted successfully.\n"
+
+# remove secondary and supplementary alignments from sorted bam
+samtools view -F 2304 -@ ${threads} -o ${workingdir}/${outname}Alignments.bam ${workingdir}/alignmentInput.sorted.bam
 echo -e $(date) " Alignments are filtered - secondary and supplementary alignments have been removed. \n"
 
 # run pipeline for each TE
@@ -202,15 +221,69 @@ done < ${workingdir}/userTE_noEmptyLines.txt
 wait
 echo -e $(date) " All transposons are processed. Finalizing...\n"
 
-# combine bam files
-samtools merge -r ${workingdir}/DiscordantReads.bam ${workingdir}/*/*_DiscordantPairs.bam
+# combine discordant bam files
+samtools merge -@ $threads -r ${workingdir}/${outname}DiscordantReads.bam ${workingdir}/*/*_DiscordantPairs.bam
+echo -e $(date) " BAM Output: Discordant pair alignment file is now available.\n" 
 
-# convert files
-awk '{print $2"\t"$3"\t"$4"\t"$1"\t"$8+$12"\t.\t"$6"\t"$11"\tFR="$8";RR="$12";IS="$6";IE="$11}' ${workingdir}/insertions.txt >> ${workingdir}/TEinsertions_putative.bed
-bedtools intersect -v -a ${workingdir}/TEinsertions_putative.bed -b $gff > ${workingdir}/TEinsertions_temp.bed
-bedtools intersect -a ${workingdir}/TEinsertions_putative.bed -b $gff -u > ${workingdir}/TEinsertions_inRepeatRegions_temp.bed
-awk '{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$9}' ${workingdir}/TEinsertions_temp.bed >> ${workingdir}/TEinsertions.bed
-awk '{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$9}' ${workingdir}/TEinsertions_inRepeatRegions_temp.bed >> ${workingdir}/TEinsertions_inRepeatRegions.bed
-rm ${workingdir}/TEinsertions_putative.bed ${workingdir}/TEinsertions_inRepeatRegions_temp.bed ${workingdir}/TEinsertions_temp.bed
+# update output BED file with TEfinder results: organize the starting file
+awk '{print $2"\t"$3"\t"$4"\t"$1"\t"$8+$12"\t.\tFR="$8";RR="$12";InsRegion="$6"-"$11";FILTER="}' ${workingdir}/insertions.txt > ${workingdir}/TEinsertions_putative.bed
+# find the entries in repeat regions for filtering
+bedtools intersect -wa -u -a ${workingdir}/TEinsertions_putative.bed -b $gtf > ${workingdir}/TEinsertions_putative_inrepeat.bed
+# filtering process
+while IFS="" read -r line || [ -n "$line" ]
+do
+	#located in repeat region
+	if (grep -Fxq "$line" "${workingdir}/TEinsertions_putative_inrepeat.bed")
+	then
+        line=$line"in_repeat,"
+	fi
+	
+	#weak evidence
+	readc=$(echo $line | awk '{print $5}')
+	if (( $readc < 10 ))
+	then
+	line=$line"weak_evidence,"
+	fi
+	
+	#strand-biased	
+	FR=$(echo $line | grep -o 'FR=[[:digit:]]*' | cut -f2 -d'=')
+	RR=$(echo $line | grep -o 'RR=[[:digit:]]*' | cut -f2 -d'=')
+	var1=$(echo 'e(l('$FR')*1.25)' | bc -l)
+	var2=$(echo 'e(l('$FR')*0.8)' | bc -l)
+	
+	if [ $(echo "$RR > $var1" | bc) -eq 1 ] || [ $(echo "$RR < $var2" | bc) -eq 1 ]
+	then
+	line=$line"strand_bias,"
+	fi
+	
+	#pass
+	lastchar=${line: -1}
+	if [ $lastchar == "," ]
+	then
+	line=${line::${#line}-1}
+	else
+	line=$line"PASS"
+	fi
+	
+	#write to final output
+	printf "%s\n" "$line" >> ${workingdir}/${outname}TEinsertions.bed
+done < ${workingdir}/TEinsertions_putative.bed
+wait
+echo -e $(date) " BED Output: TEfinder output BED file is now available.\n"
 
-echo -e $(date) " TE insertion BED files have been created. TEfinder completed successfully."
+# gtf option - create output GTF files with TEfinder results
+if [[ ! -z $out ]]
+then
+  awk 'FNR > 1 {print $1"\tTEfinder\tTIP\t"$2 + 1"\t"$3"\t"$5"\t.\t.\tte_name \""$4"\"; tags \""$7"\""}' ${workingdir}/${outname}TEinsertions.bed > ${workingdir}/${outname}TEinsertions.gtf
+  echo -e $(date) " GTF Output: TEfinder output GTF file is now available.\n"
+fi
+
+# clean working directory
+rm ${workingdir}/TEinsertions_putative.bed ${workingdir}/TEinsertions_putative_inrepeat.bed ${workingdir}/reference.fa ${workingdir}/reference.fa.fai ${workingdir}/alignmentInput.sorted.bam
+
+if [ `wc -l <${workingdir}/${outname}TEinsertions.bed` -le "1" ];
+then
+ echo -e $(date) " Error: TEfinder run unsuccessful."
+else
+ echo -e $(date) " TE insertion output files have been created. TEfinder completed successfully."
+fi
