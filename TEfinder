@@ -206,11 +206,11 @@ cp $fa ${workingdir}/reference.fa
 samtools faidx ${workingdir}/reference.fa
 
 # sort alignment input
-samtools sort -@ ${threads} -o ${workingdir}/alignmentInput.sorted.bam ${alignment}
+samtools sort -@ $threads -o ${workingdir}/alignmentInput.sorted.bam ${alignment}
 echo -e $(date) " Alignment file sorted successfully.\n"
 
 # remove secondary and supplementary alignments from sorted bam
-samtools view -F 2304 -@ ${threads} -o ${workingdir}/${outname}Alignments.bam ${workingdir}/alignmentInput.sorted.bam
+samtools view -F 2304 -@ $threads -o ${workingdir}/${outname}Alignments.bam ${workingdir}/alignmentInput.sorted.bam
 echo -e $(date) " Alignments are filtered - secondary and supplementary alignments have been removed. \n"
 
 # run pipeline for each TE
