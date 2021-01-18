@@ -30,7 +30,7 @@ function help {
      echo -e "  -te,         --TransposonsToSearch STR  TE names (single column text file)\n"
      echo -e "OPTIONAL:"
      echo -e "  -fis,        --FragmentInsertSize  INT  short-read sequencing fragment insert size [400]"
-     echo -e "  -picard,     --pathToPicardjar     STR  path to picardtools .jar file [picard.jar]"
+     echo -e "  -picard,     --pathToPicardjar     STR  path to picard tools .jar file [picard.jar]"
      echo -e "  -md,         --MaxDistanceForMerge INT  maximum distance between reads for bedtools merge [150]"
      echo -e "  -k,          --MaxTSDLength	     INT  maximum TE target site duplication (TSD) length [20]"
      echo -e "  -maxHeapMem, --MaxHeapMemory       INT  java maximum heap memory allocation for picard in Mb [2000]" 
