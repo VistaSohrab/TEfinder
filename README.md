@@ -26,6 +26,7 @@ Optional arguments with default values in brackets:
 * -out:        output format as GTF [BED]
 * -outname:    output name prefix added to file names [null]
 * -threads:    number of threads for samtools multi-threading [1]
+* -intermed:   keep intermediate files created by pipeline [no]
 * -h:          prints help option
  
 Usage:
