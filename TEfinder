@@ -38,6 +38,7 @@ function help {
      echo -e "  -out,        --OutputFormat        STR  output format as GTF [BED]"
      echo -e "  -outname,    --OutputName          STR  output name prefix added to file names [null]"
      echo -e "  -threads,    --Threads             INT  number of threads for samtools multi-threading [1]"
+     echo -e "  -intermed    --IntermediateFiles   STR  keep intermediate files created by pipeline [no]"  
      echo -e "  -h,          --help                     prints help\n"
      example
 }
@@ -109,8 +110,7 @@ function pipeline() {
           cat ${currdir}/${line}_insertionRegion.txt >> ${workingdir}/insertions.txt
           echo -e $(date) " TE insertions for "${line}" have been reported.\n" ####
           
-          #remove intermediate files
-          rm ${currdir}/${line}_MappedReadsToTE.bam ${currdir}/${line}_ReadID.txt 
+          
           echo -e $(date) " Transposon named "${line}" is processed.\n"
 	 else
 	      echo -e $(date) " Transposon named "${line}" is processed. No discordant reads found.\n"
@@ -126,6 +126,7 @@ alignment=
 gtf=
 te=
 out=
+intermed=
 outname=""
 fis=400
 picard="picard.jar"
@@ -178,6 +179,9 @@ do
      -threads | --Threads )
               shift
            threads=$1 ;;
+     -intermed | --IntermediateFiles )
+              shift
+           intermed=$1 ;;
      -h   | --help )
 	      help
           exit;;
@@ -272,16 +276,21 @@ wait
 echo -e $(date) " BED Output: TEfinder output BED file is now available.\n"
 
 # gtf option - create output GTF files with TEfinder results
-if [[ ! -z $out ]]
+if [ ! -z "$out" ]
 then
   awk 'FNR > 1 {print $1"\tTEfinder\tTIP\t"$2 + 1"\t"$3"\t"$5"\t.\t.\tte_name \""$4"\"; tags \""$7"\""}' ${workingdir}/${outname}TEinsertions.bed > ${workingdir}/${outname}TEinsertions.gtf
   echo -e $(date) " GTF Output: TEfinder output GTF file is now available.\n"
 fi
 
 # clean working directory
-rm ${workingdir}/TEinsertions_putative.bed ${workingdir}/TEinsertions_putative_inrepeat.bed ${workingdir}/reference.fa ${workingdir}/reference.fa.fai ${workingdir}/alignmentInput.sorted.bam
+if [ -z "$intermed" ]
+then
+ rm ${workingdir}/TEinsertions_putative.bed ${workingdir}/TEinsertions_putative_inrepeat.bed ${workingdir}/reference.fa ${workingdir}/reference.fa.fai \
+ ${workingdir}/alignmentInput.sorted.bam ${workingdir}/insertions.txt ${workingdir}/${outname}Alignments.bam ${workingdir}/userTE_noEmptyLines.txt 
+ rm -r ${workingdir}/*/
+fi
 
-if [ `wc -l <${workingdir}/${outname}TEinsertions.bed` -le "1" ];
+if [ `wc -l <${workingdir}/${outname}TEinsertions.bed` -le "1" ]
 then
  echo -e $(date) " Error: TEfinder run unsuccessful."
 else
