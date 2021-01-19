@@ -21,7 +21,7 @@ TEfinder uses discordant reads to detect novel transposable element insertion ev
 * -picard:     path to Picard Tools .jar file [picard.jar]
 * -md:         maximum distance between reads for bedtools merge [150]
 * -k:          maximum TE target site duplication (TSD) length [20]
-* -maxHeapMem: java maximum heap memory allocation for picard in Mb [2000]
+* -maxHeapMem: java maximum heap memory allocation for picard in MB [2000]
 * -workingdir: working directory name [TEfinder_Date]
 * -out:        output format as GTF [BED]
 * -outname:    output name prefix added to file names [null]
