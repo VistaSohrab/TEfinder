@@ -32,9 +32,11 @@ TEfinder uses discordant reads to detect novel transposable element insertion ev
 **Usage:**
 
 Default run:
+
 TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt
 
 Example command to change fragment insert size to 500, set maximum TSD length to 30, create GTF output, and include all intermediate files:
+
 TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt -fis 500 -k 30 -out GTF -intermed yes
 
 **Output files:**
