@@ -42,10 +42,11 @@ TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt
 * TE_insertions.gtf is provided with the same information as the BED file if using -out GTF
 * DiscordantReads.bam contains all discordant reads that have been identified based on the TEs of interest that have been submitted to TEfinder
 
-** Notes: **
+**Notes:**
 * Please ensure that the TE names of interest are separated by newline character "\n" and not carriage return "\r". 
   If carriage return is present, please replace all instances of "\r\n" with "\n". *This issue is generally encountered by Windows users*
-* Modifying the maximum TSD length (-k) based on the dataset is useful if there seem to be fewer than expected insertion events when using the default parameter.
-* Modifying the fragment insert size (-fis) based on the sequencing library may also be useful.
+* Modifying the maximum TSD length (-k) could be useful if there is an unexpected number of insertion events identified with the default parameter.
+  The optimal maximum TSD length can vary across datasets.
+* Modifying the fragment insert size (-fis) based on the sequencing library preparation can be useful.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4446971.svg)](https://doi.org/10.5281/zenodo.4446971)
