@@ -75,7 +75,7 @@ TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt
 
 * To create a list of TE names from the TE GTF file: awk -F '\t' '{print $9}' TEs.gtf | awk -F '"' '{print $2}' | sort | uniq > List_of_TEs.txt
 
- *This command may not yield the desired format of TE names as it depends on the structure of the attribute column of the GTF file and would need to be modified for specific cases.* 
+  *This command may not yield the desired format of TE names as it depends on the structure of the attribute column of the GTF file and would need to be modified for specific cases.* 
 
 * Modifying the maximum TSD length (-k) could be useful if there is an unexpected number of insertion events identified with the default parameter.
   The optimal maximum TSD length can vary across datasets.
