@@ -90,4 +90,4 @@ TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt
 
 * Modifying the fragment insert size (-fis) based on the sequencing library preparation can be useful.
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4446970.svg)](https://10.5281/zenodo.4446970)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4479946.svg)](https://doi.org/10.5281/zenodo.4479946)
