@@ -35,8 +35,10 @@ Default run:
 ```
 TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt
 ```
-Note: In the test_dataset folder, the alignment file used for testing is gzipped so please use 
+Note: In the test_dataset folder, the alignment file used for testing is gzipped so please use
+
       ```gunzip sample.bam.gz``` 
+
       prior to running TEfinder. 
       The expected test run result is available as sample_TEinsertions.bed for comparison.
 
