@@ -36,13 +36,16 @@ Default run:
 TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt
 ```
 Note: In the test_dataset folder, the alignment file used for testing is gzipped so please use 
+
       ```gunzip sample.bam.gz``` 
+
       prior to running TEfinder.
       The expected test run result is available as sample_TEinsertions.bed for comparison.
 
 Example command to change fragment insert size to 500, set maximum TSD length to 30, create GTF output, and include all intermediate files:
 ```
-TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt -fis 500 -k 30 -out GTF -intermed yes
+TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt \
+         -fis 500 -k 30 -out GTF -intermed yes
 ```
 **Output files:**
 * TE_insertions.bed contains identified TE insertion events in sample (in the final column, FILTER attribute with "PASS" refers to high confidence insertion events while instances labeled as "in_repeat", "weak_evidence", "strand bias" or a combination of these three labels indicate less confident insertion events)
@@ -54,7 +57,8 @@ TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt
   
   ```
   bwa index reference.fasta
-  bwa mem -R ‘@RG\tID:sample\tPL:illumina\tLB:LIB\tSM:sample’ reference.fasta sample_R1.fq sample_R2.fq > sample.bam
+  bwa mem -R ‘@RG\tID:sample\tPL:illumina\tLB:LIB\tSM:sample’ \
+          reference.fasta sample_R1.fq sample_R2.fq > sample.bam
   ```
 
   If alignment has already been completed without specifying read group information, Picard's AddOrReplaceReadGroups function can generate read group information provided
