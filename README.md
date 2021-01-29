@@ -39,9 +39,9 @@ Note: In the test_dataset folder, the alignment file used for testing is gzipped
 
       ```
       gunzip sample.bam.gz
-      ```
 
-      The expected test run result is available as sample_TEinsertions.bed for comparison.
+      ```
+     The expected test run result is available as sample_TEinsertions.bed for comparison.
 
 Example command to change fragment insert size to 500, set maximum TSD length to 30, create GTF output, and include all intermediate files:
 ```
