@@ -37,7 +37,8 @@ TEfinder -alignment sample.bam -fa reference.fa -gtf TEs.gtf -te List_of_TEs.txt
 ```
 Note: In the test_dataset folder, the alignment file used for testing is gzipped so please use
       ```gunzip sample.bam.gz``` 
-      prior to running TEfinder. 
+      prior to running TEfinder.
+
       The expected test run result (sample_TEinsertions.bed) is provided for comparison.
 
 Example command to change fragment insert size to 500, set maximum TSD length to 30, create GTF output, and include all intermediate files:
